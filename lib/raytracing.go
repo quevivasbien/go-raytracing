@@ -56,13 +56,16 @@ func (r Ray) firstIntersection(objects *[]Object) (*Object, *Vector) {
 	var fi *Object
 	var fiLoc *Vector
 	var fiSqDist float64
-	for _, object := range *objects {
+	for i := range *objects {
+		object := (*objects)[i] // need to do it this way so addresses remain the same
+		// fmt.Printf("checking object at %v\n", object.RaySource())
 		loc := object.Intersection(r)
 		if loc == nil {
 			continue
 		}
 		delta := (*loc).Sub(r.Origin)
 		sqDist := delta.Dot(delta)
+		// fmt.Printf("found intersection with object at %v with address %p\n", object.RaySource(), &object)
 		if fi == nil || sqDist < fiSqDist {
 			fi = &object
 			fiLoc = loc
@@ -141,6 +144,7 @@ func (s Scene) trace(r Ray, depth uint32) Vector {
 	if fi == nil {
 		return s.checkForLight(r)
 	}
+	// fmt.Printf("Intersected with %v at %v\n", fi, fiLoc)
 	return r.interact(fi, fiLoc, &s, depth)
 }
 
