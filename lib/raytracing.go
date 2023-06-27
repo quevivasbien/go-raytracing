@@ -5,27 +5,47 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"runtime"
+	"time"
 )
 
-const MAX_DEPTH uint32 = 5
+const MAX_DEPTH int = 5
 const HALO_DROPOFF float64 = 1.
 const HALO_THRESHOLD float64 = 0.01
 
 type Camera struct {
-	Width, Height uint32
-	Position      Vector
-	LookAt        unitVector
-	Up            unitVector
-	Right         unitVector
-	FieldOfView   float64
+	Width, Height                                  int
+	Position                                       Vector
+	LookAt, Up, Right                              unitVector
+	HalfWidth, HalfHeight, PixelWidth, PixelHeight float64
 }
 
-func DefaultCamera(width, height uint32) Camera {
+func MakeCamera(
+	Width, Height int,
+	Position Vector,
+	LookAt, Up, Right unitVector,
+	FieldOfView float64,
+) Camera {
+	hwRatio := float64(Height) / float64(Width)
+	halfWidth := math.Tan(FieldOfView)
+	halfHeight := hwRatio * halfWidth
+	pixelWidth := 2 * halfWidth / float64(Width-1)
+	pixelHeight := 2 * halfHeight / float64(Height-1)
 	return Camera{
-		width, height,
-		Vector{0, 0, 0}, unitVector{Vector{0, 0, 1}}, unitVector{Vector{0, 1, 0}}, unitVector{Vector{1, 0, 0}},
-		math.Pi / 4,
+		Width, Height,
+		Position,
+		LookAt, Up, Right,
+		halfWidth, halfHeight, pixelWidth, pixelHeight,
 	}
+}
+
+func DefaultCamera(width, height int) Camera {
+	return MakeCamera(
+		width, height,
+		Vector{0, 0, 0},
+		unitVector{Vector{0, 0, 1}}, unitVector{Vector{0, 1, 0}}, unitVector{Vector{1, 0, 0}},
+		math.Pi/4,
+	)
 }
 
 type Light struct {
@@ -108,7 +128,7 @@ func (s Scene) checkForLight(r Ray) Vector {
 	return out
 }
 
-func (r Ray) interact(o *Object, loc *Vector, s *Scene, depth uint32) Vector {
+func (r Ray) interact(o *Object, loc *Vector, s *Scene, depth int) Vector {
 	normal := (*loc).Sub(o.RaySource()).Unit().Vector
 	color := o.Surface.Color.MulScalar(o.Surface.Ambient)
 	if o.Surface.Diffuse > 0 {
@@ -136,7 +156,7 @@ func (r Ray) interact(o *Object, loc *Vector, s *Scene, depth uint32) Vector {
 	return color
 }
 
-func (s Scene) trace(r Ray, depth uint32) Vector {
+func (s Scene) trace(r Ray, depth int) Vector {
 	if depth > MAX_DEPTH {
 		return Zero()
 	}
@@ -148,30 +168,67 @@ func (s Scene) trace(r Ray, depth uint32) Vector {
 	return r.interact(fi, fiLoc, &s, depth)
 }
 
+func (s Scene) RenderPixel(x int, y int) *color.RGBA {
+	// create ray looking at pixel
+	xComp := s.Camera.Right.MulScalar(float64(x)*s.Camera.PixelWidth - s.Camera.HalfWidth)
+	yComp := s.Camera.Up.MulScalar(float64(y)*s.Camera.PixelHeight - s.Camera.HalfHeight)
+	direction := s.Camera.LookAt.Add(xComp).Add(yComp).Unit()
+	ray := Ray{Origin: s.Camera.Position, Direction: direction}
+	// trace ray
+	traceResult := s.trace(ray, 0).Trim(0, 1)
+	pixel, error := traceResult.ToColor()
+	if pixel == nil {
+		fmt.Printf("error when unpacking color: %s\n", error)
+		pixel = &color.RGBA{0, 0, 0, 255}
+	}
+	return pixel
+}
+
 func (s Scene) Render() *image.RGBA {
 	camera := s.Camera
-	hwRatio := float64(camera.Height) / float64(camera.Width)
-	halfWidth := math.Tan(camera.FieldOfView)
-	halfHeight := hwRatio * halfWidth
-	pixelWidth := 2 * halfWidth / float64(camera.Width-1)
-	pixelHeight := 2 * halfHeight / float64(camera.Height-1)
-	img := image.NewRGBA(image.Rect(0, 0, int(camera.Width), int(camera.Height)))
-	for x := uint32(0); x < camera.Width; x++ {
-		for y := uint32(0); y < camera.Height; y++ {
-			// create ray looking at pixel
-			xComp := camera.Right.MulScalar(float64(x)*pixelWidth - halfWidth)
-			yComp := camera.Up.MulScalar(float64(y)*pixelHeight - halfHeight)
-			direction := camera.LookAt.Add(xComp).Add(yComp).Unit()
-			ray := Ray{Origin: camera.Position, Direction: direction}
-			// trace ray
-			traceResult := s.trace(ray, 0).Trim(0, 1)
-			pixel, error := traceResult.ToColor()
-			if pixel == nil {
-				fmt.Printf("error when unpacking color: %s\n", error)
-				pixel = &color.RGBA{0, 0, 0, 255}
-			}
-			img.Set(int(x), int(y), pixel)
+	img := image.NewRGBA(image.Rect(0, 0, camera.Width, camera.Height))
+	timeStart := time.Now()
+	for x := 0; x < camera.Width; x++ {
+		for y := 0; y < camera.Height; y++ {
+			pixel := s.RenderPixel(x, y)
+			img.Set(x, y, pixel)
 		}
 	}
+	timeEnd := time.Now()
+	fmt.Printf("Rendered in %v\n", timeEnd.Sub(timeStart))
+	return img
+}
+
+// same functionality as Render, but works in parallel, using all available CPU cores
+func (s Scene) ConcurrentRender() *image.RGBA {
+	img := image.NewRGBA(image.Rect(0, 0, s.Camera.Width, s.Camera.Height))
+	nCores := runtime.NumCPU()
+	timeStart := time.Now()
+	// render chunks in parallel
+	jobSize := s.Camera.Height * s.Camera.Width / nCores
+	jobs := make([]Job, 0, nCores)
+	for i := 0; i < nCores; i++ {
+		start := i * jobSize
+		end := start + jobSize
+		if i == nCores-1 {
+			end = s.Camera.Height * s.Camera.Width
+		}
+		jobs = append(jobs, Job{Scene: &s, Start: start, End: end})
+	}
+	c := make(chan JobResult, nCores)
+	for _, job := range jobs {
+		go job.Run(c)
+	}
+	for i := 0; i < nCores; i++ {
+		result := <-c
+		for j, p := range result.Pixels {
+			index := result.Start + j
+			x := index % s.Camera.Width
+			y := index / s.Camera.Width
+			img.Set(x, y, p)
+		}
+	}
+	timeEnd := time.Now()
+	fmt.Printf("Rendered in %v\n", timeEnd.Sub(timeStart))
 	return img
 }

@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	camera := DefaultCamera(640, 480)
+	camera := DefaultCamera(1920, 1080)
 	light := Light{Position: Vector{-1, -4, 2}, Intensity: 1, Threshold: 0.01}
 	sphere1 := Object{
 		Shape:   Sphere{Center: Vector{0, 1, 3}, Radius: 0.5},
@@ -27,7 +27,7 @@ func main() {
 		Surface: Surface{Ambient: 0., Diffuse: 0.2, Specular: 0.9, Color: Vector{1, 1, 1}},
 	}
 	scene := Scene{Camera: camera, Objects: []Object{sphere1, sphere2, sphere3, sphere4}, Lights: []Light{light}}
-	image := scene.Render()
-	f, _ := os.Create("image.png")
+	image := scene.ConcurrentRender()
+	f, _ := os.Create("testimage.png")
 	png.Encode(f, image)
 }
