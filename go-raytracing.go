@@ -9,7 +9,7 @@ import (
 
 func main() {
 	camera := DefaultCamera(1920, 1080)
-	light := Light{Position: Vector{-1, -4, 2}, Intensity: 1, Threshold: 0.01}
+	light := MakeLight(Vector{-1, -4, 2}, 1)
 	sphere1 := Object{
 		Shape:   Sphere{Center: Vector{0, 1, 3}, Radius: 0.5},
 		Surface: Surface{Ambient: 0.1, Diffuse: 0.4, Specular: 0.05, Color: Vector{1, 1, 0}},
