@@ -13,16 +13,16 @@ func main() {
 	objects := []Object{
 		// spheres in foreground
 		Object{
-			Shape:   Sphere{Center: Vector{1, -1, 5}, Radius: 1},
-			Surface: Surface{Ambient: 0, Diffuse: 0.9, Specular: 0, Color: Vector{1, 1, 1}},
+			Shape:   Sphere{Center: Vector{1, -1, 5}, Radius: 0.8},
+			Surface: Surface{Ambient: 0, Diffuse: 0.9, Specular: 1., Color: Vector{1, 1, 1}},
 		},
 		Object{
-			Shape:   Sphere{Center: Vector{0, 0, 6}, Radius: 1},
-			Surface: Surface{Ambient: 0, Diffuse: 0.9, Specular: 0, Color: Vector{1, 1, 1}},
+			Shape:   Sphere{Center: Vector{0, 0, 6}, Radius: 0.8},
+			Surface: Surface{Ambient: 0, Diffuse: 0.9, Specular: 1., Color: Vector{1, 1, 1}},
 		},
 		Object{
-			Shape:   Sphere{Center: Vector{-1, 1, 7}, Radius: 1},
-			Surface: Surface{Ambient: 0, Diffuse: 0.9, Specular: 0, Color: Vector{1, 1, 1}},
+			Shape:   Sphere{Center: Vector{-1, 1, 7}, Radius: 0.8},
+			Surface: Surface{Ambient: 0, Diffuse: 0.9, Specular: 1., Color: Vector{1, 1, 1}},
 		},
 		// plane in background
 		Object{
