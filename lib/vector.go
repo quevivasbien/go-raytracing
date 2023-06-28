@@ -10,16 +10,24 @@ type Vector struct {
 	X, Y, Z float64
 }
 
-func I() Vector {
-	return Vector{1, 0, 0}
+type unitVector struct {
+	Vector
 }
 
-func J() Vector {
-	return Vector{0, 1, 0}
+func (v Vector) Unit() unitVector {
+	return unitVector{v.MulScalar(1 / math.Sqrt(v.Dot(v)))}
 }
 
-func K() Vector {
-	return Vector{0, 0, 1}
+func I() unitVector {
+	return unitVector{Vector{1, 0, 0}}
+}
+
+func J() unitVector {
+	return unitVector{Vector{0, 1, 0}}
+}
+
+func K() unitVector {
+	return unitVector{Vector{0, 0, 1}}
 }
 
 func Zero() Vector {
@@ -86,14 +94,6 @@ func (v Vector) Rotate(w Vector, theta float64) Vector {
 	outofPlaneDist := math.Sin(theta) / math.Sqrt(outOfPlane.Dot(outOfPlane))
 	orthoRot := ortho.MulScalar(inplaneDist).Add(outOfPlane.MulScalar(outofPlaneDist)).MulScalar(orthoLen)
 	return parallel.Add(orthoRot)
-}
-
-type unitVector struct {
-	Vector
-}
-
-func (v Vector) Unit() unitVector {
-	return unitVector{v.MulScalar(1 / math.Sqrt(v.Dot(v)))}
 }
 
 func (v Vector) Trim(min, max float64) Vector {

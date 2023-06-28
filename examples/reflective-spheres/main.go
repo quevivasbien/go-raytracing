@@ -50,6 +50,6 @@ func main() {
 
 	scene := Scene{Camera: camera, Objects: objects, Lights: []Light{light}}
 	image := scene.ConcurrentRender()
-	f, _ := os.Create("testimage.png")
+	f, _ := os.Create("reflective-spheres.png")
 	png.Encode(f, image)
 }

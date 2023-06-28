@@ -129,7 +129,7 @@ func (s Scene) checkForLight(r Ray) Vector {
 }
 
 func (r Ray) interact(o *Object, loc *Vector, s *Scene, depth int) Vector {
-	normal := (*loc).Sub(o.RaySource()).Unit().Vector
+	normal := o.Normal(*loc)
 	color := o.Surface.Color.MulScalar(o.Surface.Ambient)
 	if o.Surface.Diffuse > 0 {
 		diffusion := 0.
@@ -146,7 +146,7 @@ func (r Ray) interact(o *Object, loc *Vector, s *Scene, depth int) Vector {
 		color = color.Add(diffuseColor)
 	}
 	if o.Surface.Specular > 0 {
-		reflection := r.Direction.Reflect(normal).Unit()
+		reflection := r.Direction.Reflect(normal.Vector).Unit()
 		reflectionRay := Ray{Origin: *loc, Direction: reflection}
 		reflectedColor := s.trace(reflectionRay, depth+1)
 		specularColor := reflectedColor.MulScalar(o.Surface.Specular)
