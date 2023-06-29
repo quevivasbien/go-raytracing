@@ -37,7 +37,7 @@ func main() {
 	}
 
 	scene := Scene{Camera: camera, Objects: objects, Lights: []Light{light}}
-	image := scene.Render()
+	image := scene.ConcurrentRender()
 	f, _ := os.Create("reflective-planes.png")
 	png.Encode(f, image)
 }
