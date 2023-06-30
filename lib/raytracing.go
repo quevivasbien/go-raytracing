@@ -48,6 +48,15 @@ func DefaultCamera(width, height int) Camera {
 	)
 }
 
+func (c Camera) Resized(width, height int, fov float64) Camera {
+	return MakeCamera(
+		width, height,
+		c.Position,
+		c.LookAt, c.Up, c.Right,
+		fov,
+	)
+}
+
 type Light struct {
 	Position  Vector
 	Intensity float64
@@ -97,7 +106,8 @@ func (r Ray) firstIntersection(objects *[]Object) (*Object, *Vector) {
 
 func (s Scene) visibleLights(p Vector) []*Light {
 	var visible []*Light
-	for _, light := range s.Lights {
+	for i := range s.Lights {
+		light := s.Lights[i]
 		r := Ray{Origin: light.Position, Direction: p.Sub(light.Position).Unit()}
 		fi, _ := r.firstIntersection(&s.Objects)
 		if fi != nil {
