@@ -70,3 +70,11 @@ func (s *StrictWidth) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 func NewStrictWidth(w float32, contents ...fyne.CanvasObject) *fyne.Container {
 	return container.New(&StrictWidth{w: w}, contents...)
 }
+
+func NewResizingBox(maxH float32, contents ...fyne.CanvasObject) *container.Scroll {
+	vBox := container.NewVBox(contents...)
+	c := container.NewVScroll(vBox)
+	vBoxW, vBoxH := vBox.MinSize().Width, vBox.MinSize().Height
+	c.SetMinSize(fyne.NewSize(vBoxW, fyne.Min(vBoxH, maxH)))
+	return c
+}
