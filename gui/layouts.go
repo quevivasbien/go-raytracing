@@ -5,11 +5,11 @@ import (
 	"fyne.io/fyne/v2/container"
 )
 
-type sizedBox struct {
+type StrictSized struct {
 	h, w float32
 }
 
-func (s *sizedBox) MinSize(objects []fyne.CanvasObject) fyne.Size {
+func (s *StrictSized) MinSize(objects []fyne.CanvasObject) fyne.Size {
 	// minW, minH := s.w, float32(0)
 	// for _, obj := range objects {
 	// 	childSize := obj.MinSize()
@@ -20,7 +20,7 @@ func (s *sizedBox) MinSize(objects []fyne.CanvasObject) fyne.Size {
 	return fyne.NewSize(s.w, s.h)
 }
 
-func (s *sizedBox) Layout(objects []fyne.CanvasObject, size fyne.Size) {
+func (s *StrictSized) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 	pos := fyne.NewPos(0, 0)
 	// for _, obj := range objects {
 	// 	h := obj.MinSize().Height
@@ -36,10 +36,37 @@ func (s *sizedBox) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 	}
 }
 
-func StrictSized(w, h float32, contents ...fyne.CanvasObject) *fyne.Container {
-	return container.New(&sizedBox{w: w, h: h}, contents...)
+func NewStrictSized(w, h float32, contents ...fyne.CanvasObject) *fyne.Container {
+	return container.New(&StrictSized{w: w, h: h}, contents...)
 }
 
 func WhiteSpace(w, h float32) *fyne.Container {
-	return container.New(&sizedBox{w: w, h: h})
+	return container.New(&StrictSized{w: w, h: h})
+}
+
+type StrictWidth struct {
+	w float32
+}
+
+func (s *StrictWidth) MinSize(objects []fyne.CanvasObject) fyne.Size {
+	minH := float32(0)
+	for _, obj := range objects {
+		childSize := obj.MinSize()
+		minH += childSize.Height
+	}
+	return fyne.NewSize(s.w, minH)
+}
+
+func (s *StrictWidth) Layout(objects []fyne.CanvasObject, size fyne.Size) {
+	pos := fyne.NewPos(0, 0)
+	for _, obj := range objects {
+		h := obj.MinSize().Height
+		obj.Resize(fyne.NewSize(size.Width, h))
+		obj.Move(pos)
+		pos = pos.Add(fyne.NewPos(0, h))
+	}
+}
+
+func NewStrictWidth(w float32, contents ...fyne.CanvasObject) *fyne.Container {
+	return container.New(&StrictWidth{w: w}, contents...)
 }

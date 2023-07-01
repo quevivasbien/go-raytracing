@@ -115,3 +115,7 @@ func (v Vector) ToColor() (*color.RGBA, error) {
 		255,
 	}, nil
 }
+
+func (v Vector) String() string {
+	return fmt.Sprintf("(%v, %v, %v)", v.X, v.Y, v.Z)
+}

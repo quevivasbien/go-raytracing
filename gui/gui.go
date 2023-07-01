@@ -66,7 +66,13 @@ func addLightMenu(s *Scene, lightList *widget.List) *fyne.Container {
 	)
 }
 
-func lightsContainer(s *Scene) *fyne.Container {
+func showAddLightMenu(a *fyne.App, s *Scene, lightList *widget.List) {
+	lightWindow := (*a).NewWindow("Add Light")
+	lightWindow.SetContent(addLightMenu(s, lightList))
+	lightWindow.Show()
+}
+
+func lightsContainer(a *fyne.App, s *Scene) *fyne.Container {
 	var lightList *widget.List
 	lightList = widget.NewList(
 		func() int {
@@ -88,10 +94,13 @@ func lightsContainer(s *Scene) *fyne.Container {
 			}
 		},
 	)
+	label := widget.NewLabel("Lights")
+	label.TextStyle.Bold = true
+	label.Alignment = fyne.TextAlignCenter
 	return container.NewVBox(
-		container.NewCenter(widget.NewLabel("Lights")),
-		StrictSized(MIN_WINDOW_WIDTH, 150, lightList),
-		addLightMenu(s, lightList),
+		label,
+		NewStrictSized(MIN_WINDOW_WIDTH, 150, lightList),
+		widget.NewButton("Add Light", func() { showAddLightMenu(a, s, lightList) }),
 	)
 }
 
@@ -147,7 +156,6 @@ func addObjectMenu(s *Scene, objectList *widget.List) *fyne.Container {
 	objectTypeEntry.Selected = "Sphere"
 	menu := container.NewVBox(objectTypeEntry, addObjectMenu)
 	objectTypeEntry.OnChanged = func(str string) {
-		fmt.Printf("Selected: %v\n", str)
 		switch str {
 		case "Sphere":
 			addObjectMenu.Objects = []fyne.CanvasObject{addSphereMenu(s, objectList)}
@@ -159,18 +167,76 @@ func addObjectMenu(s *Scene, objectList *widget.List) *fyne.Container {
 	return menu
 }
 
-func objectsContainer(s *Scene) *fyne.Container {
+// open addObjectMenu in a new window
+func showAddObjectMenu(a *fyne.App, s *Scene, objectList *widget.List) {
+	w := (*a).NewWindow("Add Object")
+	w.SetContent(addObjectMenu(s, objectList))
+	w.Show()
+}
+
+func sphereInfo(s Sphere) *fyne.Container {
+	label := widget.NewLabel("Sphere")
+	label.TextStyle.Bold = true
+	label.Alignment = fyne.TextAlignCenter
+	return container.NewHBox(
+		label,
+		widget.NewLabel(fmt.Sprintf("Center: %v", s.Center)),
+		widget.NewLabel(fmt.Sprintf("Radius: %v", s.Radius)),
+	)
+}
+
+func planeInfo(p Plane) *fyne.Container {
+	label := widget.NewLabel("Plane")
+	label.TextStyle.Bold = true
+	return container.NewHBox(
+		label,
+		widget.NewLabel(fmt.Sprintf("Point: %v", p.Point)),
+		widget.NewLabel(fmt.Sprintf("Normal: %v", p.Norm)),
+	)
+}
+
+func shapeInfo(s Shape) *fyne.Container {
+	sphere, ok := s.(Sphere)
+	if ok {
+		return sphereInfo(sphere)
+	}
+	plane, ok := s.(Plane)
+	if ok {
+		return planeInfo(plane)
+	}
+	return container.NewHBox(
+		widget.NewLabel(fmt.Sprintf("Shape: %v", s)),
+	)
+}
+
+func surfaceInfo(s Surface) *fyne.Container {
+	return container.NewHBox(
+		container.NewHBox(widget.NewLabel("Color"), container.NewVBox(layout.NewSpacer(), NewColorSwatch(&s.Color), layout.NewSpacer())),
+		widget.NewLabel(fmt.Sprintf("Ambient: %.2f", s.Ambient)),
+		widget.NewLabel(fmt.Sprintf("Diffuse: %.2f", s.Diffuse)),
+		widget.NewLabel(fmt.Sprintf("Specular: %.2f", s.Specular)),
+	)
+}
+
+func objectInfo(o Object) *fyne.Container {
+	return container.NewVBox(
+		shapeInfo(o.Shape),
+		surfaceInfo(o.Surface),
+	)
+}
+
+func objectsContainer(a *fyne.App, s *Scene) *fyne.Container {
 	var objectList *widget.List
 	objectList = widget.NewList(
 		func() int {
 			return len(s.Objects)
 		},
 		func() fyne.CanvasObject {
-			return container.NewHBox(widget.NewLabel("Placeholder"))
+			return container.NewHBox(container.NewVBox(widget.NewLabel(""), widget.NewLabel("")))
 		},
 		func(i widget.ListItemID, obj fyne.CanvasObject) {
 			obj.(*fyne.Container).Objects = []fyne.CanvasObject{
-				widget.NewLabel(fmt.Sprint(s.Objects[i])),
+				objectInfo(s.Objects[i]),
 				layout.NewSpacer(),
 				widget.NewButton("Remove", func() {
 					s.Objects = append(s.Objects[:i], s.Objects[i+1:]...)
@@ -179,10 +245,12 @@ func objectsContainer(s *Scene) *fyne.Container {
 			}
 		},
 	)
+	label := widget.NewLabel("Objects")
+	label.TextStyle.Bold = true
 	return container.NewVBox(
-		container.NewCenter(widget.NewLabel("Objects")),
-		StrictSized(MIN_WINDOW_WIDTH, 150, objectList),
-		addObjectMenu(s, objectList),
+		container.NewCenter(label),
+		NewStrictSized(MIN_WINDOW_WIDTH, 250, objectList),
+		widget.NewButton("Add Object", func() { showAddObjectMenu(a, s, objectList) }),
 	)
 }
 
@@ -230,14 +298,14 @@ func Launch() {
 	)
 	c := container.NewVBox(
 		form,
-		layout.NewSpacer(),
-		lightsContainer(&scene),
-		objectsContainer(&scene),
-		layout.NewSpacer(),
+		WhiteSpace(MIN_WINDOW_WIDTH, 50),
+		lightsContainer(&a, &scene),
+		WhiteSpace(MIN_WINDOW_WIDTH, 50),
+		objectsContainer(&a, &scene),
+		WhiteSpace(MIN_WINDOW_WIDTH, 50),
 		renderButton,
 	)
 	w.SetContent(c)
-	w.Resize(fyne.NewSize(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT))
 
 	w.ShowAndRun()
 }

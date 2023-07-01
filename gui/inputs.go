@@ -5,10 +5,14 @@ import (
 	"strconv"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 	. "github.com/quevivasbien/go-raytracing/lib"
 )
+
+const SLIDER_WIDTH float32 = 100
 
 func createInput(defaultText string, parser func(string) (float64, error)) *widget.Entry {
 	e := widget.NewEntry()
@@ -64,37 +68,54 @@ func NewVectorEntry(v *Vector) *fyne.Container {
 	return container.NewHBox(xEntry, yEntry, zEntry)
 }
 
+func NewUnitSlider() *widget.Slider {
+	s := widget.NewSlider(0, 1)
+	s.Step = 0.01
+	return s
+}
+
+func NewColorSwatch(c *Vector) *canvas.Rectangle {
+	rgba, _ := c.ToColor()
+	rect := canvas.NewRectangle(rgba)
+	rect.SetMinSize(fyne.NewSize(20, 20))
+	return rect
+}
+
+func UpdateRectColor(rect *canvas.Rectangle, c *Vector) {
+	rgba, _ := c.ToColor()
+	rect.FillColor = rgba
+	rect.Refresh()
+}
+
 func NewColorEntry(v *Vector) *fyne.Container {
-	rEntry := createInput("0", parseUnitRange)
-	gEntry := createInput("0", parseUnitRange)
-	bEntry := createInput("0", parseUnitRange)
-	rEntry.OnChanged = func(s string) {
-		r, _ := parseUnitRange(s)
-		v.X = r
+	rEntry := NewUnitSlider()
+	gEntry := NewUnitSlider()
+	bEntry := NewUnitSlider()
+	swatch := NewColorSwatch(v)
+	rEntry.OnChanged = func(f float64) {
+		v.X = f
+		UpdateRectColor(swatch, v)
 	}
-	gEntry.OnChanged = func(s string) {
-		g, _ := parseUnitRange(s)
-		v.Y = g
+	gEntry.OnChanged = func(f float64) {
+		v.Y = f
+		UpdateRectColor(swatch, v)
 	}
-	bEntry.OnChanged = func(s string) {
-		b, _ := parseUnitRange(s)
-		v.Z = b
+	bEntry.OnChanged = func(f float64) {
+		v.Z = f
+		UpdateRectColor(swatch, v)
 	}
 	return container.NewHBox(
-		container.NewVBox(widget.NewLabel("R"), rEntry),
-		container.NewVBox(widget.NewLabel("G"), gEntry),
-		container.NewVBox(widget.NewLabel("B"), bEntry),
+		NewStrictWidth(SLIDER_WIDTH, widget.NewLabel("R"), rEntry),
+		NewStrictWidth(SLIDER_WIDTH, widget.NewLabel("G"), gEntry),
+		NewStrictWidth(SLIDER_WIDTH, widget.NewLabel("B"), bEntry),
+		container.NewVBox(layout.NewSpacer(), swatch),
 	)
 }
 
 func NewSurfaceEntry(s *Surface) *fyne.Container {
-	AmbientEntry, DiffuseEntry, SpecularEntry := widget.NewSlider(0, 1), widget.NewSlider(0, 1), widget.NewSlider(0, 1)
-	AmbientEntry.Value = 0
-	DiffuseEntry.Value = 0
-	SpecularEntry.Value = 0
-	AmbientEntry.Step = 0.01
-	DiffuseEntry.Step = 0.01
-	SpecularEntry.Step = 0.01
+	AmbientEntry := NewUnitSlider()
+	DiffuseEntry := NewUnitSlider()
+	SpecularEntry := NewUnitSlider()
 	AmbientEntry.OnChanged = func(f float64) {
 		s.Ambient = f
 	}
@@ -105,10 +126,12 @@ func NewSurfaceEntry(s *Surface) *fyne.Container {
 		s.Specular = f
 	}
 	colorEntry := NewColorEntry(&s.Color)
-	return container.NewHBox(
-		container.NewVBox(widget.NewLabel("Ambient"), AmbientEntry),
-		container.NewVBox(widget.NewLabel("Diffuse"), DiffuseEntry),
-		container.NewVBox(widget.NewLabel("Specular"), SpecularEntry),
+	return container.NewVBox(
+		container.NewHBox(
+			NewStrictWidth(SLIDER_WIDTH, widget.NewLabel("Ambient"), AmbientEntry),
+			NewStrictWidth(SLIDER_WIDTH, widget.NewLabel("Diffuse"), DiffuseEntry),
+			NewStrictWidth(SLIDER_WIDTH, widget.NewLabel("Specular"), SpecularEntry),
+		),
 		colorEntry,
 	)
 }
