@@ -6,3 +6,7 @@ The library contains tools for rendering simple scenes with raytracing (on the C
 
 ![reflective spheres](./examples/reflective-spheres/reflective-spheres.png)
 ![reflective planes](./examples/reflective-planes/reflective-planes.png)
+
+## GUI
+
+I've also added support for a GUI, using the [Fyne](https://fyne.io/) toolkit, to configure and render scenes. The `main.go` script in the main directory will launch this GUI. 
